@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang=ja>
+<meta charset=UTF-8>
+<script type='text/javascript'>
+var BluetoothDevice;
+var _oDevice;
+var _oServer;
+var _oService;
+var _oCharaRead;
+var _oCharaWrite;
+var _descriptor;
+var _oVal;
+ 
+//デバイスと接続時の認証用UUID、ペリフェラル側で設定したものと同じである必要がある。
+const RASPI_SERVICE_UUID                = "d3025c12-c563-4c03-9b6d-cd6e946ec64c";
+const RASPI_READ_CHARACTERISTIC_UUID    = "def9da24-c8f5-4757-b66c-4464937a2698";
+const RASPAI_DESC_UUID			       = "f1800f89-1ff0-4ac4-8b84-b37415fa0a64";
+ 
+console.log(navigator.bluetooth);
+ 
+function connect() {
+	let options = {};
+ 
+	options.filters = [
+	//	{acceptAllDevices:true},　　//コメントアウトを外すと周囲の全てのデバイスをスキャンする
+		{services: [RASPI_SERVICE_UUID]}, //スキャンするデバイスのUUIDを指定
+		{name: "raspberrypi"},　　//スキャンするデバイスのデバイス名を指定
+	];
+//filterの条件で周囲のBLEデバイスをスキャン
+	navigator.bluetooth.requestDevice(options)
+	  .then(device => {
+	    console.log("device", device);
+	    _oDevice = device;
+	    return _oDevice.gatt.connect();
+	  })
+}
+</script>
+
+<title>Web Bluetooth API</title>
+</head>
+<body>
+<button onclick=connect()>Click me</button> 
+<p id=demo></p><br>
+</body>
+</html>
