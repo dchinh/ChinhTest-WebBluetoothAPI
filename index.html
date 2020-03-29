@@ -2,7 +2,7 @@
 <html lang=ja>
 <meta charset=UTF-8>
 <script type='text/javascript'>
-var BluetoothDevice;
+var bluetoothDevice;
 var _oDevice;
 var _oServer;
 var _oService;
@@ -11,28 +11,111 @@ var _oCharaWrite;
 var _descriptor;
 var _oVal;
  
-//デバイスと接続時の認証用UUID、ペリフェラル側で設定したものと同じである必要がある。
-const RASPI_SERVICE_UUID                = "d3025c12-c563-4c03-9b6d-cd6e946ec64c";
-const RASPI_READ_CHARACTERISTIC_UUID    = "def9da24-c8f5-4757-b66c-4464937a2698";
-const RASPAI_DESC_UUID			       = "f1800f89-1ff0-4ac4-8b84-b37415fa0a64";
+const RASPI_SERVICE_UUID               = "d3025c12-c563-4c03-9b6d-cd6e946ec64c";
+const RASPI_READ_CHARACTERISTIC_UUID   = "def9da24-c8f5-4757-b66c-4464937a2698";
+const RASPAI_DESC_UUID				   = "f1800f89-1ff0-4ac4-8b84-b37415fa0a64";
  
 console.log(navigator.bluetooth);
  
-function connect() {
+function connect() {　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　
 	let options = {};
  
 	options.filters = [
-	//	{acceptAllDevices:true},　　//コメントアウトを外すと周囲の全てのデバイスをスキャンする
-		{services: [RASPI_SERVICE_UUID]}, //スキャンするデバイスのUUIDを指定
-		{name: "raspberrypi"},　　//スキャンするデバイスのデバイス名を指定
+　//ここのコメントアウトを外すと周囲の全てのBLEデバイスをスキャンします。　
+	//	{acceptAllDevices:true},　
+		{services: [RASPI_SERVICE_UUID]},
+		{name: "raspberrypi"},
 	];
-//filterの条件で周囲のBLEデバイスをスキャン
+//filterの条件で、周囲のBLEデバイスをスキャン
 	navigator.bluetooth.requestDevice(options)
 	  .then(device => {
 	    console.log("device", device);
 	    _oDevice = device;
-	    return _oDevice.gatt.connect();
+//選択したデバイスと接続
+	    return _oDevice.gatt.connect();　　　
 	  })
+	  .then(server => {
+	    console.log("server", server);
+	    _oServer = server;
+	    return _oServer.getPrimaryService(RASPI_SERVICE_UUID);
+	  })
+　//選択したデバイスに設定されているServiceの情報を取得
+	  .then(service => {
+	    console.log("service", service);
+	    _oService = service;
+	    return _oService.getCharacteristic(RASPI_READ_CHARACTERISTIC_UUID);
+	  })
+//選択したServiceが保持しているCharacteristic情報を取得
+	  .then(chara => {　
+	    console.log("chara", chara);
+	    _oCharaRead = chara;
+//ペリフェラルからNotify通知を受け取る準備
+	    chara.addEventListener("characteristicvaluechanged",onRecvSensorData);
+            chara.startNotifications();
+            alert("BLE端末との接続に成功しました");
+            return _oCharaRead.getDescriptor(RASPAI_DESC_UUID);
+	  })
+	  .then(descriptor => {
+            console.log("desc",descriptor);
+            _descriptor = descriptor;
+          })
+	  .catch(error => {
+	    console.log(error);
+	  });
+}
+//ペリフェラル側のCharacteristicの値に書き込む処理
+function writeMessage() {
+	  var text = document.querySelector("#message").value;
+	  var arrayBuffe = new TextEncoder().encode(text);
+	  console.log(arrayBuffe);
+	  var sendVal_log = new TextDecoder().decode(arrayBuffe);
+	  console.log(sendVal_log);
+	  var Send_element = document.getElementById("Send_text");
+	  Send_element.innerHTML = sendVal_log;
+	  _oCharaRead.writeValue(arrayBuffe);
+}
+//ペリフェラル側のCharacteristicの値にを読み込む処理
+function readMessage() {　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　
+    _oCharaRead.readValue()
+	  .then(value => {
+　　  　console.log("value", value.buffer);
+　　　  _oVal = value;
+	oVal = new TextDecoder("utf-8").decode(_oVal);
+	var Rcv_element = document.getElementById("Rcv_text");
+	Rcv_element.innerHTML = oVal;
+	  })
+	  .catch(error => {
+	    console.log(error);
+	  });
+}
+//ペリフェラル側のCharacteristicの値に追加されている説明情報を読み込む処理
+function readDescriptor() {　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　
+	_descriptor.readValue()
+	  .then(value => {
+	    _oVal = value;
+	    oVal = new TextDecoder("utf-8").decode(_oVal);
+	    var Desc_element = document.getElementById("Desc_text");
+	    Desc_element.innerHTML = oVal;
+	    console.log(oVal);
+	  })
+	  .catch(error => {
+	    console.log(error);
+	  });
+}
+//ペリフェラル側から送られてきたNotifyを受信する処理
+function onRecvSensorData(event){                                 
+	console.log("Notify受信");
+	let characteristic = event.target; 
+        let value = characteristic.value;
+        var notifVal = new TextDecoder("utf-8").decode(value);
+        var Rcv_element = document.getElementById("Rcv_text");
+        Rcv_element.innerHTML = notifVal;    
+}
+//BEL切断処理
+function disconnect() {
+	if(!bluetoothDevice || !bluetoothDevice.gatt.connected) return;
+	bluetoothDevice.gatt.disconnect();
+	alert("BLE接続を切断しました。");
 }
 </script>
 
