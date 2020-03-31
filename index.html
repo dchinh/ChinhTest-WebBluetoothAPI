@@ -11,18 +11,19 @@ var _oCharaWrite;
 var _descriptor;
 var _oVal;
  
-const RASPI_SERVICE_UUID               = "d3025c12-c563-4c03-9b6d-cd6e946ec64c";
-const RASPI_READ_CHARACTERISTIC_UUID   = "def9da24-c8f5-4757-b66c-4464937a2698";
-const RASPAI_DESC_UUID				   = "f1800f89-1ff0-4ac4-8b84-b37415fa0a64";
- 
+//const RASPI_SERVICE_UUID               = "d3025c12-c563-4c03-9b6d-cd6e946ec64c";
+//const RASPI_READ_CHARACTERISTIC_UUID   = "def9da24-c8f5-4757-b66c-4464937a2698";
+//const RASPAI_DESC_UUID				   = "f1800f89-1ff0-4ac4-8b84-b37415fa0a64";
 console.log(navigator.bluetooth);
  
 function connect() {　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　
 	let options = {};
- 
+var RASPI_SERVICE_UUID               = document.getElementById("RASPI_SERVICE_UUID").value;
+var RASPI_READ_CHARACTERISTIC_UUID   = document.getElementById("RASPI_READ_CHARACTERISTIC_UUID").value; 
+var RASPAI_DESC_UUID				 = document.getElementById("RASPAI_DESC_UUID").value;
 	options.filters = [
 　//ここのコメントアウトを外すと周囲の全てのBLEデバイスをスキャンします。　
-	//	{acceptAllDevices:true},　
+		//{acceptAllDevices:true}　
 		{services: [RASPI_SERVICE_UUID]},
 		{name: "raspberrypi"},
 	];
@@ -113,8 +114,7 @@ function onRecvSensorData(event){
 }
 //BEL切断処理
 function disconnect() {
-	if(!bluetoothDevice || !bluetoothDevice.gatt.connected) return;
-	bluetoothDevice.gatt.disconnect();
+    _oDevice.gatt.disconnect();
 	alert("BLE接続を切断しました。");
 }
 </script>
@@ -122,7 +122,24 @@ function disconnect() {
 <title>Web Bluetooth API</title>
 </head>
 <body>
-<button onclick=connect()>Click me</button> 
-<p id=demo></p><br>
+<p>PCラズパイ間 Web Bluetooth API通信テスト</p>
+<p>RASPI_SERVICE_UUID:</p>
+<input type="text" id="RASPI_SERVICE_UUID" value="d3025c12-c563-4c03-9b6d-cd6e946ec64c" size="35"/>
+<p>RASPI_READ_CHARACTERISTIC_UUID: </p>
+<input type="text" id="RASPI_READ_CHARACTERISTIC_UUID" value="def9da24-c8f5-4757-b66c-4464937a2698" size="35"/>
+<p>RASPAI_DESC_UUID: </p>
+<input type="text" id="RASPAI_DESC_UUID" value="f1800f89-1ff0-4ac4-8b84-b37415fa0a64" size="35"/> <br> <br>
+<button id="connect" onclick="connect();">接続</button>
+<button id="receive" onclick="readMessage();">受信</button>
+<button id="descriptor" onclick="readDescriptor();">説明受信</button>
+<input type="text" id="message" placeholder="送信するメッセージ" />
+<button id="write" onclick="writeMessage();">送信</button>
+<button id="disconnect" onclick="disconnect();">切断</button><br>
+<p>受信したメッセージ : </p>
+<p id="Rcv_text"></p><br>
+<p>受信したメッセージの説明文 : </p>
+<p id="Desc_text"></p><br>
+<p>送信したメッセージ : </p>
+<p id="Send_text"></p><br>
 </body>
 </html>
